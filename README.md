@@ -74,6 +74,10 @@ defined above, the response takes 2 seconds. If the limitation is the
 connection rate itself, then we can asume that we can query 1000 servers
 and get the complete response in about 30 seconds.
 
+- 10 servers about 0.6sec
+- 60 servers about 1.8sec
+- 1000 severs about 20-25 sec? (estimate)
+
 > If you have a fleet of 1000s of servers, I'd be interested to know
 > how well inspector performs for running `uptime` on all of them.
 
