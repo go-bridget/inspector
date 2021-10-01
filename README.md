@@ -94,7 +94,5 @@ to open an issue to discuss requirements before submitting a PR.
 - [ ] Output machine readable results (json)
 - [ ] Enable support for `known_hosts`
 - [ ] Daemon mode with continous monitoring + prometheus export?
-- [ ] A better commands and flags implementation (*)
+- [ ] A better commands and flags implementation (* Don't bother with this one, we have some ideas and are very particular / peculiar about flag packages)
 
-* Don't bother with this one, we have some ideas and are very particular
-/ peculiar about flag packages
