@@ -1,0 +1,21 @@
+aliases:
+  uptime: uptime
+  kernel: uname -v
+
+columns:
+- name: Docker
+  command: docker version -f '{{ .Server.Version }}' 2>/dev/null || echo None
+- name: Containers
+  command: docker ps -a --format '{{ .Names }}' | wc -l
+- name: Go
+  command: go version 2>/dev/null || echo None
+
+servers:
+- docker1
+- docker3
+- docker4
+- docker5
+- docker6
+- docker7
+- docker8
+- docker9
