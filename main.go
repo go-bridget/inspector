@@ -24,21 +24,26 @@ type Server string
 type Column struct {
 	Name    string
 	Command string
+	Hide    bool
 	Value   string
 }
 
 func columnNames(columns []Column) []string {
-	result := make([]string, len(columns))
-	for k, column := range columns {
-		result[k] = column.Name
+	result := []string{}
+	for _, column := range columns {
+		if !column.Hide {
+			result = append(result, column.Name)
+		}
 	}
 	return result
 }
 
 func columnValues(columns []Column) []string {
-	result := make([]string, len(columns))
-	for k, column := range columns {
-		result[k] = column.Value
+	result := []string{}
+	for _, column := range columns {
+		if !column.Hide {
+			result = append(result, column.Value)
+		}
 	}
 	return result
 }

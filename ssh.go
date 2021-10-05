@@ -26,7 +26,7 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 	}
 	defer client.Close()
 
-//	socket := os.Getenv("SSH_AUTH_SOCK")
+	//	socket := os.Getenv("SSH_AUTH_SOCK")
 
 	/* if socket != "" {
 		if err := agent.ForwardToRemote(client, socket); err != nil {
