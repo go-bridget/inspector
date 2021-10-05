@@ -108,18 +108,24 @@ func start() error {
 	}
 
 	for _, server := range config.Servers {
-		serverName := string(server)
 		serverWg.Add(1)
-		go func(server string) {
+		go func(serverName string) {
 			defer serverWg.Done()
-			columns, err := sshRun(serverName, config.Columns)
+
+			columns := make([]Column, len(config.Columns))
+			copy(columns, config.Columns[:])
+
+			columns, err := sshRun(serverName, columns)
 			if err != nil {
-				fmt.Printf("Error for %s: %s\n", server, err)
+				fmt.Printf("Error for %s: %s\n", serverName, err)
 			}
+
+			// fmt.Printf("%s %#v\n", serverName, columns)
+
 			serverMutex.Lock()
 			defer serverMutex.Unlock()
 			serverResults[serverName] = columns
-		}(serverName)
+		}(string(server))
 	}
 
 	serverWg.Wait()

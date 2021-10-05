@@ -19,11 +19,20 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	client, err := ssh.Dial("tcp", net.JoinHostPort(server, "22"), config)
 	if err != nil {
 		return nil, err
 	}
 	defer client.Close()
+
+//	socket := os.Getenv("SSH_AUTH_SOCK")
+
+	/* if socket != "" {
+		if err := agent.ForwardToRemote(client, socket); err != nil {
+			fmt.Println("Error setting up agent forwarding:", err)
+		}
+	} */
 
 	runCommand := func(command string) string {
 		session, err := client.NewSession()
@@ -31,6 +40,10 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 			return fmt.Sprintf("ERR: %s", err)
 		}
 		defer session.Close()
+
+		// if err := agent.RequestAgentForwarding(session); err != nil {
+		// 	fmt.Println("Can't enable agent forwarding:", err)
+		// }
 
 		var b bytes.Buffer
 		session.Stdout = &b
@@ -45,12 +58,11 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 		return strings.TrimRightFunc(b.String(), unicode.IsSpace)
 	}
 
-	result := make([]Column, len(columns))
+	// columns is already a copy
 	for k, v := range columns {
-		v.Value = runCommand(v.Command)
-		result[k] = v
+		columns[k].Value = runCommand(v.Command)
 	}
-	return result, nil
+	return columns, nil
 }
 
 func loadSshKey() ([]byte, error) {
