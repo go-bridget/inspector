@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/rodaine/table"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )
 
@@ -81,12 +83,27 @@ func start() error {
 		serverWg      sync.WaitGroup
 		serverMutex   sync.Mutex
 		serverResults = make(map[string][]Column)
+		output        = "table"
 	)
 
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
+	args := []string{}
+	copy(args, os.Args)
+
+	if slices.Contains(os.Args, "--json") {
+		output = "json"
+		args = make([]string, 0, len(os.Args)-1)
+		for _, v := range os.Args {
+			if v == "--json" {
+				continue
+			}
+			args = append(args, v)
+		}
+	}
+
+	if len(args) > 1 {
+		switch args[1] {
 		case "run":
-			commandArgs := os.Args[2:]
+			commandArgs := args[2:]
 			if len(commandArgs) == 0 {
 				return errors.New("No command given")
 			}
@@ -99,7 +116,7 @@ func start() error {
 			}
 
 		default:
-			if commandString, ok := config.Aliases[os.Args[1]]; ok {
+			if commandString, ok := config.Aliases[args[1]]; ok {
 				config.Columns = []Column{
 					Column{
 						Name:    "Output",
@@ -135,20 +152,29 @@ func start() error {
 
 	serverWg.Wait()
 
-	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-	columnFmt := color.New(color.FgYellow).SprintfFunc()
+	switch output {
+	case "table":
+		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+		columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-	tbl := table.New(toInterfaceSlice("Server", columnNames(config.Columns))...)
-	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+		tbl := table.New(toInterfaceSlice("Server", columnNames(config.Columns))...)
+		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-	for _, server := range config.Servers {
-		serverName := string(server)
-		if columns, ok := serverResults[serverName]; ok {
-			tbl.AddRow(toInterfaceSlice(serverName, columnValues(columns))...)
+		for _, server := range config.Servers {
+			serverName := string(server)
+			if columns, ok := serverResults[serverName]; ok {
+				tbl.AddRow(toInterfaceSlice(serverName, columnValues(columns))...)
+			}
 		}
-	}
 
-	tbl.Print()
+		tbl.Print()
+	case "json":
+		b, err := json.MarshalIndent(serverResults, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(b))
+	}
 
 	return nil
 }

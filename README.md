@@ -95,7 +95,7 @@ to open an issue to discuss requirements before submitting a PR.
 
 - [ ] Ability to sort by column
 - [ ] Set non-root user and use sudo
-- [ ] Output machine readable results (json)
+- [x] Output machine readable results (use `--json`)
 - [ ] Enable support for `known_hosts`
 - [ ] Daemon mode with continous monitoring + prometheus export?
 - [ ] A better commands and flags implementation (* Don't bother with this one, we have some ideas and are very particular / peculiar about flag packages)

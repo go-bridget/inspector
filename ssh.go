@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -22,27 +23,26 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 
 	client, err := ssh.Dial("tcp", net.JoinHostPort(server, "22"), config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error connecting to remote host: %w", err)
 	}
 	defer client.Close()
 
-	//	socket := os.Getenv("SSH_AUTH_SOCK")
-
-	/* if socket != "" {
+	socket := os.Getenv("SSH_AUTH_SOCK")
+	if socket != "" {
 		if err := agent.ForwardToRemote(client, socket); err != nil {
-			fmt.Println("Error setting up agent forwarding:", err)
+			fmt.Println("[ForwardToRemote] WARN: error setting up agent forwarding:", err)
 		}
-	} */
+	}
 
 	runCommand := func(command string) string {
 		session, err := client.NewSession()
 		if err != nil {
-			return fmt.Sprintf("ERR: %s", err)
+			return err.Error()
 		}
 		defer session.Close()
 
 		// if err := agent.RequestAgentForwarding(session); err != nil {
-		// 	fmt.Println("Can't enable agent forwarding:", err)
+		//	fmt.Println("[RequestAgentForwarding] WARN: Can't enable agent forwarding:", err)
 		// }
 
 		var b bytes.Buffer
@@ -65,6 +65,8 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 	return columns, nil
 }
 
+var errKeyNotFound = errors.New("id_rsa file not found")
+
 func loadSshKey() ([]byte, error) {
 	locations := []string{
 		".ssh/id_rsa",
@@ -77,10 +79,10 @@ func loadSshKey() ([]byte, error) {
 	for _, loc := range locations {
 		key, err = ioutil.ReadFile(loc)
 		if err == nil {
-			break
+			return key, nil
 		}
 	}
-	return key, err
+	return key, errKeyNotFound
 }
 
 func sshConfig() (*ssh.ClientConfig, error) {
@@ -90,7 +92,8 @@ func sshConfig() (*ssh.ClientConfig, error) {
 	socket := os.Getenv("SSH_AUTH_SOCK")
 	conn, err := net.Dial("unix", socket)
 	if err != nil {
-		fmt.Println("Failed to open SSH_AUTH_SOCK: %v (skipping)", err)
+		agentClient := agent.NewKeyring()
+		authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
 	} else {
 		agentClient := agent.NewClient(conn)
 		authMethods = append(authMethods, ssh.PublicKeysCallback(agentClient.Signers))
@@ -98,16 +101,17 @@ func sshConfig() (*ssh.ClientConfig, error) {
 
 	// private key fallback
 	key, err := loadSshKey()
-	if err != nil {
-		return nil, err
-	}
+	isKeyNotFound := errors.Is(err, errKeyNotFound)
+	isKeyFound := !isKeyNotFound
 
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		return nil, err
-	}
+	if isKeyFound {
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return nil, err
+		}
 
-	authMethods = append(authMethods, ssh.PublicKeys(signer))
+		authMethods = append(authMethods, ssh.PublicKeys(signer))
+	}
 
 	config := &ssh.ClientConfig{
 		User:            "root",
