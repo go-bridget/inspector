@@ -1,6 +1,8 @@
 aliases:
   uptime: uptime
   kernel: uname -v
+  sysbench:detail: sysbench --threads="$(nproc)" cpu run | egrep '(^sysbench|threads|events per second)'
+  sysbench:single: sysbench cpu run | egrep '(^sysbench|threads|events per second)'
 
 columns:
 - name: Docker
@@ -9,6 +11,13 @@ columns:
   command: docker ps -a --format '{{ .Names }}' | wc -l
 - name: Go
   command: go version 2>/dev/null || echo None
+- name: Processors
+  command: nproc
+- name: Model name
+  command: |+
+           cat /proc/cpuinfo  | grep 'model name' | uniq | sed -e 's/^.*: //g'
+- name: Memory
+  command: cat /proc/meminfo | grep MemTotal | awk '{print $2}'
 
 servers:
 - docker1
