@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -51,7 +50,7 @@ func columnValues(columns []Column) []string {
 }
 
 func ReadConfig(filename string) (*Config, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func start() error {
 		output        = "table"
 	)
 
-	args := []string{}
+	args := make([]string, len(os.Args))
 	copy(args, os.Args)
 
 	if slices.Contains(os.Args, "--json") {
@@ -109,7 +108,7 @@ func start() error {
 			}
 			commandString := strings.Join(commandArgs, " ")
 			config.Columns = []Column{
-				Column{
+				{
 					Name:    "Output",
 					Command: commandString,
 				},
@@ -118,7 +117,7 @@ func start() error {
 		default:
 			if commandString, ok := config.Aliases[args[1]]; ok {
 				config.Columns = []Column{
-					Column{
+					{
 						Name:    "Output",
 						Command: commandString,
 					},

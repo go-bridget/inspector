@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -25,7 +26,11 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to remote host: %w", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.Printf("debug: error closing ssh client: %v", err)
+		}
+	}()
 
 	socket := os.Getenv("SSH_AUTH_SOCK")
 	if socket != "" {
@@ -39,7 +44,14 @@ func sshRun(server string, columns []Column) ([]Column, error) {
 		if err != nil {
 			return err.Error()
 		}
-		defer session.Close()
+		defer func() {
+			if err := session.Close(); err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				log.Printf("debug: error closing session: %v", err)
+			}
+		}()
 
 		// if err := agent.RequestAgentForwarding(session); err != nil {
 		//	fmt.Println("[RequestAgentForwarding] WARN: Can't enable agent forwarding:", err)
@@ -77,7 +89,7 @@ func loadSshKey() ([]byte, error) {
 		err error
 	)
 	for _, loc := range locations {
-		key, err = ioutil.ReadFile(loc)
+		key, err = os.ReadFile(loc)
 		if err == nil {
 			return key, nil
 		}
